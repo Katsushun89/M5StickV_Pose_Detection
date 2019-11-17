@@ -27,8 +27,8 @@ def setup():
     sensor.reset()
     sensor.set_pixformat(sensor.RGB565)
     sensor.set_framesize(sensor.QVGA)
-    sensor.skip_frames(time = 2000)
     sensor.set_windowing((img_size, img_size)) #キャプチャの段階でサイズを合わせる
+    sensor.skip_frames(time = 1000)
     #sensor.set_vflip(0) #flip camera; maix go use sensor.set_hmirror(0)
     sensor.run(1)
 
@@ -71,7 +71,7 @@ while True:
 
     # 結果を画面に表示
     #img.draw_string(0, 0, "%.2f:%s                            "%(pmax, max_label))
-    a = lcd.display(img, oft=(0,0))
+    a = lcd.display(img)
     print(fps)
 
     for i, led in enumerate(leds):
