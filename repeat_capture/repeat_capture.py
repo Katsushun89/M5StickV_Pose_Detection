@@ -18,7 +18,7 @@ led_b.value(1)
 is_push_btn_a = 0
 
 is_requested_cap = 0
-INTERVAL_TIME = 1000 * 10 
+INTERVAL_TIME = 1000 * 10
 pre_cap_time = 0
 
 is_enable_rec = False
@@ -37,7 +37,7 @@ image_read = image.Image()
 
 x_pos = 260
 y_pos = 170
-radius = 10 
+radius = 10
 
 while True:
     current_time = utime.ticks_ms()
@@ -51,7 +51,7 @@ while True:
         pre_cap_time = current_time
         if is_enable_rec:
             is_requested_cap = 1
-            led_b.value(0)
+            #led_b.value(0)
             #print(pre_cap_time)
 
     if is_requested_cap == 1 and is_push_btn_a == 0:
