@@ -1,3 +1,4 @@
+import audio
 import sensor
 import image
 import lcd
@@ -6,18 +7,41 @@ import utime
 import KPU as kpu
 
 from fpioa_manager import fm
-
-fm.register(board_info.LED_R, fm.fpioa.GPIO4)
-led_r = GPIO(GPIO.GPIO4, GPIO.OUT)
-led_r.value(1) #RGBW LEDs are Active Low
-
-fm.register(board_info.LED_G, fm.fpioa.GPIO5)
-led_g = GPIO(GPIO.GPIO5, GPIO.OUT)
-led_g.value(1) #RGBW LEDs are Active Low
+from machine import I2C
+from Maix import I2S, GPIO
 
 fm.register(board_info.LED_B, fm.fpioa.GPIO6)
 led_b = GPIO(GPIO.GPIO6, GPIO.OUT)
 led_b.value(1) #RGBW LEDs are Active Low
+
+i2c = I2C(I2C.I2C0, freq=400000, scl=28, sda=29)
+
+fm.register(board_info.SPK_SD, fm.fpioa.GPIO0)
+spk_sd=GPIO(GPIO.GPIO0, GPIO.OUT)
+spk_sd.value(1) #Enable the SPK output
+
+fm.register(board_info.SPK_DIN,fm.fpioa.I2S0_OUT_D1)
+fm.register(board_info.SPK_BCLK,fm.fpioa.I2S0_SCLK)
+fm.register(board_info.SPK_LRCLK,fm.fpioa.I2S0_WS)
+
+wav_dev = I2S(I2S.DEVICE_0)
+
+def play_sound(filename):
+    try:
+        player = audio.Audio(path = filename)
+        player.volume(100)
+        wav_info = player.play_process(wav_dev)
+        wav_dev.channel_config(wav_dev.CHANNEL_1, I2S.TRANSMITTER,resolution = I2S.RESOLUTION_16_BIT, align_mode = I2S.STANDARD_MODE)
+        wav_dev.set_sample_rate(wav_info[1])
+        while True:
+            ret = player.play()
+            if ret == None:
+                break
+            elif ret==0:
+                break
+        player.finish()
+    except:
+        pass
 
 def setup():
     img_size = 224 # 上記のセルで IMAGE_SIZE に指定したのと同じ値
@@ -40,9 +64,10 @@ lcd.draw_string(0,0,"MobileNet Demo")
 lcd.draw_string(0,10,"Loading labels...")
 
 # ラベルファイルの読み込み
-f=open('/sd/labels.txt','r')
-labels=f.readlines()
-f.close()
+#f=open('/sd/labels.txt','r')
+#labels=f.readlines()
+#f.close()
+labels=["absence","bad_pose","good_pose"]
 
 print(labels)
 
@@ -52,8 +77,8 @@ task = kpu.load('/sd/model.kmodel')
 clock = time.clock()
 print("load model")
 
-leds = [led_r, led_g, led_b]
-
+keep_cnt = 0
+is_noticed = False
 
 while True:
     img = sensor.snapshot()
@@ -71,13 +96,24 @@ while True:
 
     # 結果を画面に表示
     #img.draw_string(0, 0, "%.2f:%s                            "%(pmax, max_label))
-    a = lcd.display(img)
-    print(fps)
+    print("%.2f:%s", pmax, max_label)
+    lcd.display(img)
+    #print(fps)
 
-    for i, led in enumerate(leds):
-        if i == max_index and pmax > 0.8:
-            led.value(0)
-        else:
-            led.value(1)
+    if 1 == max_index and pmax > 0.8:
+        led_b.value(0)
+        keep_cnt += 1
+        if keep_cnt > 10 : keep_cnt = 10
+
+    else:
+        led_b.value(1)
+        keep_cnt = 0
+        is_noticed = False
+
+    print(keep_cnt)
+    if keep_cnt >= 10 and is_noticed == False:
+        is_noticed = True
+        play_sound("/sd/voice/notice_bad_pose.wav")
+
 
 kpu.deinit(task)
